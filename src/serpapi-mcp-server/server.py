@@ -144,6 +144,64 @@ async def get_weather(location: str, unit: str = "fahrenheit", include_daily_for
         print(e)
         return f"Error: {str(e)}"
 
+# Tool to get stock market preview via SerpApi
+@mcp.tool()
+async def get_stock_market_preview(company_name: str) -> str:
+    """Get stock market preview for a specific company via SerpApi.
+
+    Args:
+        company_name: The name of the company to get stock market preview for. It could be the company name or the ticker symbol.
+
+    Returns:
+        Stock market preview results that include price, currency, previous close, price movement, market cap, pe ratio, and table of key financial metrics in a formatted string or an error message.
+    """
+
+    params = {
+        "api_key": API_KEY,
+        "engine": "google",
+        "q": f"{company_name} stock",
+    }
+
+    try:
+        search = SerpApiSearch(params)
+        data = search.get_dict()
+
+        answer_box = data.get("answer_box", {})
+        if "answer_box" in data and answer_box["type"] == "finance_results":
+            result = [
+                f"title: {answer_box['title']}",
+                f"Exchange: {answer_box['exchange']}",
+                f"Stock: {answer_box['stock']}",
+                f"Currency: {answer_box['currency']}",
+                f"Price: {answer_box['price']}",
+                f"Previous Close: {answer_box['previous_close']}",
+            ]
+            if "price_movement" in answer_box:
+                result.append(f"Price Movement: (price: {answer_box['price_movement']["price"]}) (percentage: {answer_box['price_movement']["percentage"]}) (movement: {answer_box['price_movement']["movement"]})")
+            if "market" in answer_box:
+                result.append(f"Market Status: (closed: {answer_box['market']["closed"]}) (date: {answer_box['market']["date"]}) (trading: {answer_box['market']["trading"]}) (price: {answer_box['market']["price"]}) (price_movement: (price {answer_box['market']["price_movement"]["price"]}) (percentage: {answer_box['market']["price_movement"]["percentage"]}) (movement: {answer_box['market']["price_movement"]["movement"]}))")
+            if "table" in answer_box:
+                table_data = answer_box["table"]
+                for row in table_data:
+                    result.append(f"{row['name']}: {row['value']}")
+
+            return "\n".join(result)
+        else:
+            return "No weather results found"
+
+    # Handle HTTP-specific errors
+    except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            return "Error: Rate limit exceeded. Please try again later."
+        elif e.response.status_code == 401:
+            return "Error: Invalid API key. Please check your SERPAPI_API_KEY."
+        else:
+            return f"Error: {e.response.status_code} - {e.response.text}"
+    # Handle other exceptions (e.g., network issues)
+    except Exception as e:
+        print(e)
+        return f"Error: {str(e)}"
+
 # Run the server
 if __name__ == "__main__":
     mcp.run()
