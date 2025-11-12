@@ -1,108 +1,352 @@
-# SerpApi MCP Server
+# <img src="https://user-images.githubusercontent.com/307597/154772945-1b7dba5f-21cf-41d0-bb2e-65b6eff4aaaf.png" width="30" height="30"/> SerpApi MCP Server
 
-[![Build](https://github.com/ilyazub/serpapi-mcp-server/actions/workflows/python-package.yml/badge.svg)](https://github.com/ilyazub/serpapi-mcp-server/actions/workflows/python-package.yml)
+A Model Context Protocol (MCP) server implementation that integrates with [SerpApi](https://serpapi.com) for comprehensive search engine results and data extraction.
 
-Build an MCP server that:
+[![Build](https://github.com/serpapi/mcp-server/actions/workflows/python-package.yml/badge.svg)](https://github.com/serpapi/mcp-server/actions/workflows/python-package.yml)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-- Get parsed search engines results pages via SerpApi using an API key, *fast*
+## Features
 
-This MCP (Model Context Protocol) server integrates with [SerpApi](https://serpapi.com) to perform searches across various search engines and retrieve both live and archived results. It exposes tools and resources for seamless interaction with MCP clients or hosts, such as Grok or Claude for Desktop.
-
----
+- **Multi-Engine Search**: Google, Bing, Yahoo, DuckDuckGo, Yandex, Baidu, YouTube, eBay, Walmart, and more
+- **Real-time Weather Data**: Location-based weather with forecasts via search queries
+- **Stock Market Data**: Company financials and market data through search integration
+- **Dynamic Result Processing**: Automatically detects and formats different result types
+- **Raw JSON Support**: Option to return full unprocessed API responses
+- **Structured Results**: Clean, formatted output optimized for AI consumption
+- **Rate Limit Handling**: Automatic retry logic with exponential backoff
+- **Error Recovery**: Comprehensive error handling and user feedback
 
 ## Installation
 
-To set up the SerpApi MCP server, install the required Python libraries:
-
 ```bash
-pip install mcp serpapi python-dotenv
+git clone https://github.com/serpapi/mcp-server.git
+cd mcp-server
+uv sync
 ```
 
-You’ll also need a [SerpApi API key](https://serpapi.com/manage-api-key). Sign up at SerpApi to get one.
+## Configuration
 
-## Quick Start
+### Environment Variables
 
-1. Save the Server Code: Place the server code in a file, e.g., server.py.
+#### Required
+- `SERPAPI_API_KEY`: Your SerpApi API key from [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
 
-2. Configure the API Key: Create a .env file in the same directory with your SerpApi API key:
-```plaintext
-SERPAPI_API_KEY=your_api_key_here
-```
+### Setup Steps
 
-3. Run the Server: Start the server with:
+1. **Get API Key**: Sign up at [SerpApi](https://serpapi.com) and get your API key
+2. **Create .env file**:
+   ```bash
+   SERPAPI_API_KEY=your_api_key_here
+   ```
+3. **Run Server**:
+   ```bash
+   uv run src/server.py
+   ```
 
-```bash
-python server.py
-```
+## Client Configurations
 
-4. Integrate with an MCP Client: Connect the server to an MCP client or host (e.g., Claude for Desktop). For Claude, update Claude_desktop_config.json:
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
     "serpapi": {
-      "command": "python",
-      "args": ["path/to/server.py"]
+      "command": "uv",
+      "args": ["run", "/path/to/mcp-server/src/server.py"],
+      "env": {
+        "SERPAPI_API_KEY": "your_api_key_here"
+      }
     }
   }
 }
 ```
 
-Restart the client to load the server.
+### VS Code
 
-## Features
-- Supported Engines: Google, Google Light, Bing, Walmart, Yahoo, eBay, YouTube, DuckDuckGo, Yandex, Baidu
+Add to your VS Code settings or `.vscode/mcp.json`:
 
-- **Tools**:
-* search: Perform a search on a specified engine with a query and optional parameters.
+```json
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "apiKey",
+      "description": "SerpApi API Key",
+      "password": true
+    }
+  ],
+  "servers": {
+    "serpapi": {
+      "command": "uv",
+      "args": ["run", "src/server.py"],
+      "env": {
+        "SERPAPI_API_KEY": "${input:apiKey}"
+      }
+    }
+  }
+}
+```
 
+### Cursor
 
-- **Resources**:
-* locations: Find Google Locations.
+For Cursor v0.48.6+, add to MCP Servers:
+
+```json
+{
+  "mcpServers": {
+    "serpapi-mcp": {
+      "command": "uv",
+      "args": ["run", "src/server.py"],
+      "env": {
+        "SERPAPI_API_KEY": "YOUR-API-KEY"
+      }
+    }
+  }
+}
+```
+
+## Available Tools
+
+### Universal Search Tool (`search`)
+
+The consolidated search tool that handles all search types through a single interface.
+
+**Best for:**
+- Any type of search query (web, weather, stock, images, news, shopping)
+- Unified interface across all search engines and result types
+- Both formatted output and raw JSON responses
+
+**Parameters:**
+- `params` (Dict): Search parameters including:
+  - `q` (str): Search query (required)
+  - `engine` (str): Search engine (default: "google_light")
+  - `location` (str): Geographic location filter
+  - `num` (int): Number of results (default: 10)
+- `raw` (bool): Return raw JSON response (default: false)
+
+**Usage Examples:**
+
+#### General Search
+```json
+{
+  "name": "search",
+  "arguments": {
+    "params": {
+      "q": "best coffee shops",
+      "engine": "google",
+      "location": "Austin, TX"
+    }
+  }
+}
+```
+
+#### Weather Search
+```json
+{
+  "name": "search",
+  "arguments": {
+    "params": {
+      "q": "weather in London",
+      "engine": "google"
+    }
+  }
+}
+```
+
+#### Stock Market Search
+```json
+{
+  "name": "search",
+  "arguments": {
+    "params": {
+      "q": "AAPL stock price",
+      "engine": "google"
+    }
+  }
+}
+```
+
+#### News Search
+```json
+{
+  "name": "search",
+  "arguments": {
+    "params": {
+      "q": "latest AI developments",
+      "engine": "google",
+      "tbm": "nws"
+    }
+  }
+}
+```
+
+#### Raw JSON Output
+```json
+{
+  "name": "search",
+  "arguments": {
+    "params": {
+      "q": "machine learning",
+      "engine": "google"
+    },
+    "raw": true
+  }
+}
+```
+
+## Supported Search Engines
+
+- **Google** (`google`) - Full Google search results
+- **Google Light** (`google_light`) - Faster, lightweight Google results (default)
+- **Bing** (`bing`) - Microsoft Bing search
+- **Yahoo** (`yahoo`) - Yahoo search results
+- **DuckDuckGo** (`duckduckgo`) - Privacy-focused search
+- **Yandex** (`yandex`) - Russian search engine
+- **Baidu** (`baidu`) - Chinese search engine
+- **YouTube** (`youtube_search`) - Video search
+- **eBay** (`ebay`) - Product search
+- **Walmart** (`walmart`) - Product search
+
+For a complete list, visit [SerpApi Engines](https://serpapi.com/search-engines).
+
+## Result Types
+
+The search tool automatically detects and formats different result types:
+
+- **Answer Box**: Weather data, stock prices, knowledge graph, calculations
+- **Organic Results**: Traditional web search results
+- **News Results**: News articles with source and date
+- **Image Results**: Images with thumbnails and links
+- **Shopping Results**: Product listings with prices and sources
+
+Results are prioritized and formatted for optimal readability.
+
+## Error Handling
+
+The server provides comprehensive error handling:
+
+- **Rate Limiting**: Automatic retry with exponential backoff
+- **Authentication**: Clear API key validation messages  
+- **Network Issues**: Graceful degradation and error reporting
+- **Invalid Parameters**: Helpful parameter validation
+
+Common error responses:
+```json
+{
+  "error": "Rate limit exceeded. Please try again later."
+}
+```
+
+## Development
+
+### Running in Development Mode
+
+```bash
+# Install dependencies
+uv sync
+
+# Run with MCP Inspector
+uv run mcp dev src/server.py
+
+# Run server directly
+uv run src/server.py
+```
+
+### Project Structure
+
+```
+serpapi-mcp-server/
+├── src/
+│   └── server.py           # Main MCP server implementation
+├── pyproject.toml         # Project configuration  
+├── README.md              # This file
+├── LICENSE               # MIT License
+└── .env.example          # Environment template
+```
 
 ## Usage Examples
 
-These examples assume an MCP client (e.g., written in Python using the MCP client SDK) is connected to the server.
-Listing Supported Engines
-Retrieve the list of supported search engines:
-
+### Basic Search
 ```python
-
-engines = await session.read_resource("locations")
-print(engines)
-```
-
-Performing a Search
-Search for "coffee" on Google with a location filter:
-
-```python
-
+# Search for information
 result = await session.call_tool("search", {
-    "query": "coffee",
-    "engine": "google",
-    "location": "Austin, TX"
+    "params": {
+        "q": "MCP protocol documentation",
+        "engine": "google"
+    }
 })
 ```
-print(result)
 
-## Configuration
-API Key: Set your SerpApi API key in the `.env` file as `SERPAPI_API_KEY`.
-
-### Running the Server
-
-Production Mode: Launch the server with:
-```bash
-
-python server.py
+### Weather Query
+```python
+# Get weather information
+weather = await session.call_tool("search", {
+    "params": {
+        "q": "weather in San Francisco with forecast",
+        "engine": "google"
+    }
+})
 ```
 
-Development Mode: Use the MCP Inspector for debugging:
-
-```bash
-mcp dev server.py
+### Stock Information
+```python
+# Get stock data
+stock = await session.call_tool("search", {
+    "params": {
+        "q": "Tesla stock price and market cap",
+        "engine": "google"
+    }
+})
 ```
 
-## Testing
+### Raw JSON Response
+```python
+# Get full API response
+raw_data = await session.call_tool("search", {
+    "params": {
+        "q": "artificial intelligence",
+        "engine": "google"
+    },
+    "raw": True
+})
+```
 
-Test the server using the MCP Inspector or an MCP client. For Claude for Desktop, configure the server in `Claude_desktop_config.json`, restart the app, and use the hammer icon to explore and test available tools.
+## Troubleshooting
+
+### Common Issues
+
+**"Invalid API key" Error:**
+- Verify your API key at [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
+- Check that `SERPAPI_API_KEY` is set in your environment
+
+**"Rate limit exceeded" Error:**
+- Wait for the retry period
+- Consider upgrading your SerpApi plan
+- Reduce request frequency
+
+**"Module not found" Error:**
+- Ensure dependencies are installed: `uv install` or `pip install mcp serpapi python-dotenv`
+- Check Python version compatibility (3.13+ required)
+
+**"No results found" Error:**
+- Try adjusting your search query
+- Use a different search engine
+- Check if the query is valid for the selected engine
+
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Install dependencies: `uv install`
+4. Make your changes
+5. Commit changes: `git commit -m 'Add amazing feature'`
+6. Push to branch: `git push origin feature/amazing-feature`
+7. Open a Pull Request
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
 
