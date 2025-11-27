@@ -2,382 +2,114 @@
 
 A Model Context Protocol (MCP) server implementation that integrates with [SerpApi](https://serpapi.com) for comprehensive search engine results and data extraction.
 
-[![Build](https://github.com/serpapi/mcp-server/actions/workflows/python-package.yml/badge.svg)](https://github.com/serpapi/mcp-server/actions/workflows/python-package.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## Features
 
-- **Multi-Engine Search**: Google, Bing, Yahoo, DuckDuckGo, Yandex, Baidu, YouTube, eBay, Walmart, and more
+- **Multi-Engine Search**: Google, Bing, Yahoo, DuckDuckGo, YouTube, eBay, and [more](https://serpapi.com/search-engines)
 - **Real-time Weather Data**: Location-based weather with forecasts via search queries
 - **Stock Market Data**: Company financials and market data through search integration
 - **Dynamic Result Processing**: Automatically detects and formats different result types
 - **Raw JSON Support**: Option to return full unprocessed API responses
 - **Structured Results**: Clean, formatted output optimized for AI consumption
-- **Rate Limit Handling**: Automatic retry logic with exponential backoff
-- **Error Recovery**: Comprehensive error handling and user feedback
 
-## Installation
+## Quick Start
 
+SerpApi MCP Server is available as a hosted service at [mcp.serpapi.com](https://mcp.serpapi.com). In order to connect to it, you need to provide an API key. You can find your API key on your [SerpApi dashboard](https://serpapi.com/dashboard).
+
+You can configure Claude Desktop to use the hosted server:
+
+```json
+{
+  "mcpServers": {
+    "serpapi": {
+      "url": "https://mcp.serpapi.com/YOUR_SERPAPI_API_KEY/mcp"
+    }
+  }
+}
+```
+
+### Self-Hosting
 ```bash
 git clone https://github.com/serpapi/mcp-server.git
 cd mcp-server
-uv sync
+uv sync && uv run src/server.py
 ```
 
-## Configuration
-
-### API Key Authentication
-
-This server supports two methods for providing your SerpApi API key:
-
-1. **Path-based** (recommended): Include your API key directly in the URL path
-2. **Header-based**: Pass your API key in the Authorization header
-
-#### Required
-- **SerpApi API Key**: Get your API key from [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
-
-### Setup Steps
-
-1. **Get API Key**: Sign up at [SerpApi](https://serpapi.com) and get your API key
-2. **Run Server**:
-   ```bash
-   uv run src/server.py
-   ```
-3. **Access with API Key**: Use either method below to authenticate your requests
-
-## Running with Docker
-
-```bash
-# Build the image
-docker build -t serpapi-mcp-server .
-
-# Run the container (no environment variables needed)
-docker run -p 8000:8000 serpapi-mcp-server
-```
-
-The server will be available at `http://localhost:8000`. Include your API key in the request path or headers as shown below.
-
-## Client Configurations
-
-### Claude Desktop
-
-#### Method 1: Path-based API Key (Recommended)
-
-Add to your `claude_desktop_config.json`:
-
+Configure Claude Desktop:
 ```json
 {
   "mcpServers": {
     "serpapi": {
-      "url": "http://localhost:8000/YOUR_SERPAPI_API_KEY/v1/mcp"
+      "url": "http://localhost:8000/YOUR_SERPAPI_API_KEY/mcp"
     }
   }
 }
 ```
 
-#### Method 2: Authorization Header
+Get your API key: [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
 
-Add to your `claude_desktop_config.json`:
+## Authentication
 
-```json
-{
-  "mcpServers": {
-    "serpapi": {
-      "url": "http://localhost:8000/v1/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_SERPAPI_API_KEY"
-      }
-    }
-  }
-}
-```
+Two methods are supported:
+- **Path-based**: `/YOUR_API_KEY/mcp` (recommended)
+- **Header-based**: `Authorization: Bearer YOUR_API_KEY`
 
-### Production Deployment
-
-For production deployments, use your domain:
-
-```json
-{
-  "mcpServers": {
-    "serpapi": {
-      "url": "https://yourdomain.com/YOUR_SERPAPI_API_KEY/v1/mcp"
-    }
-  }
-}
-```
-
-## Authentication Examples
-
-### cURL Examples
-
-#### Path-based Authentication
+**Examples:**
 ```bash
-curl -X POST "http://localhost:8000/your_serpapi_key/v1/mcp" \
-  -H "Content-Type: application/json" \
-  -d '{"method": "tools/call", "params": {"name": "search", "arguments": {"params": {"q": "weather in London"}}}}'
+# Path-based
+curl "https://mcp.serpapi.com/your_key/mcp" -d '...'
+
+# Header-based  
+curl "https://mcp.serpapi.com/mcp" -H "Authorization: Bearer your_key" -d '...'
 ```
 
-#### Header-based Authentication
-```bash
-curl -X POST "http://localhost:8000/v1/mcp" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your_serpapi_key" \
-  -d '{"method": "tools/call", "params": {"name": "search", "arguments": {"params": {"q": "weather in London"}}}}'
-```
+## Search Tool
 
-### Client Library Examples
+The MCP server has one main Search Tool that supports all SerpApi engines and result types. You can find all available parameters on the [SerpApi API reference](https://serpapi.com/search-api).
 
-Both authentication methods work seamlessly with MCP clients. The server automatically detects and validates your API key from either the URL path or Authorization header.
+The parameters you can provide are specific for each API engine. Some sample parameters are provided below:
 
-## Available Tools
+- `params.q` (required): Search query
+- `params.engine`: Search engine (default: "google_light") 
+- `params.location`: Geographic filter
+- `raw`: Return raw JSON (default: false)
+- ...see other parameters on the [SerpApi API reference](https://serpapi.com/search-api)
 
-### Universal Search Tool (`search`)
+**Examples:**
 
-The consolidated search tool that handles all search types through a single interface.
-
-**Best for:**
-- Any type of search query (web, weather, stock, images, news, shopping)
-- Unified interface across all search engines and result types
-- Both formatted output and raw JSON responses
-
-**Parameters:**
-- `params` (Dict): Search parameters including:
-  - `q` (str): Search query (required)
-  - `engine` (str): Search engine (default: "google_light")
-  - `location` (str): Geographic location filter
-  - `num` (int): Number of results (default: 10)
-- `raw` (bool): Return raw JSON response (default: false)
-
-**Usage Examples:**
-
-#### General Search
 ```json
-{
-  "name": "search",
-  "arguments": {
-    "params": {
-      "q": "best coffee shops",
-      "engine": "google",
-      "location": "Austin, TX"
-    }
-  }
-}
+{"name": "search", "arguments": {"params": {"q": "coffee shops", "location": "Austin, TX"}}}
+{"name": "search", "arguments": {"params": {"q": "weather in London"}}}
+{"name": "search", "arguments": {"params": {"q": "AAPL stock"}}}
+{"name": "search", "arguments": {"params": {"q": "news"}, "raw": true}}
 ```
 
-#### Weather Search
-```json
-{
-  "name": "search",
-  "arguments": {
-    "params": {
-      "q": "weather in London",
-      "engine": "google"
-    }
-  }
-}
-```
+**Supported Engines:** Google, Bing, Yahoo, DuckDuckGo, YouTube, eBay, and more.
 
-#### Stock Market Search
-```json
-{
-  "name": "search",
-  "arguments": {
-    "params": {
-      "q": "AAPL stock price",
-      "engine": "google"
-    }
-  }
-}
-```
-
-#### News Search
-```json
-{
-  "name": "search",
-  "arguments": {
-    "params": {
-      "q": "latest AI developments",
-      "engine": "google",
-      "tbm": "nws"
-    }
-  }
-}
-```
-
-#### Raw JSON Output
-```json
-{
-  "name": "search",
-  "arguments": {
-    "params": {
-      "q": "machine learning",
-      "engine": "google"
-    },
-    "raw": true
-  }
-}
-```
-
-## Supported Search Engines
-
-- **Google** (`google`) - Full Google search results
-- **Google Light** (`google_light`) - Faster, lightweight Google results (default)
-- **Bing** (`bing`) - Microsoft Bing search
-- **Yahoo** (`yahoo`) - Yahoo search results
-- **DuckDuckGo** (`duckduckgo`) - Privacy-focused search
-- **Yandex** (`yandex`) - Russian search engine
-- **Baidu** (`baidu`) - Chinese search engine
-- **YouTube** (`youtube_search`) - Video search
-- **eBay** (`ebay`) - Product search
-- **Walmart** (`walmart`) - Product search
-
-For a complete list, visit [SerpApi Engines](https://serpapi.com/search-engines).
-
-## Result Types
-
-The search tool automatically detects and formats different result types:
-
-- **Answer Box**: Weather data, stock prices, knowledge graph, calculations
-- **Organic Results**: Traditional web search results
-- **News Results**: News articles with source and date
-- **Image Results**: Images with thumbnails and links
-- **Shopping Results**: Product listings with prices and sources
-
-Results are prioritized and formatted for optimal readability.
-
-## Error Handling
-
-The server provides comprehensive error handling:
-
-- **Rate Limiting**: Automatic retry with exponential backoff
-- **Authentication**: Clear API key validation messages  
-- **Network Issues**: Graceful degradation and error reporting
-- **Invalid Parameters**: Helpful parameter validation
-
-Common error responses:
-```json
-{
-  "error": "Rate limit exceeded. Please try again later."
-}
-```
+**Result Types:** Answer boxes, organic results, news, images, shopping - automatically detected and formatted.
 
 ## Development
 
-### Running in Development Mode
-
 ```bash
-# Install dependencies
-uv sync
+# Local development
+uv sync && uv run src/server.py
 
-# Run server directly
-uv run src/server.py
-```
+# Docker
+docker build -t serpapi-mcp . && docker run -p 8000:8000 serpapi-mcp
 
-### Using MCP Inspector
-
-The MCP Inspector provides a web interface for testing MCP tools.
-
-```bash
-# Install (requires Node.js)
-npm install -g @modelcontextprotocol/inspector
-
-# Run inspector
+# Testing with MCP Inspector
 npx @modelcontextprotocol/inspector
-```
-
-Then configure: 
-- **Path-based**: URL `localhost:8000/YOUR_API_KEY/v1/mcp`, Transport "Streamable HTTP transport"
-- **Header-based**: URL `localhost:8000/v1/mcp`, Transport "Streamable HTTP transport", and add Authorization header `Bearer YOUR_API_KEY`
-
-Click "List tools" to start testing.
-
-### Project Structure
-
-```
-serpapi-mcp-server/
-├── src/
-│   └── server.py           # Main MCP server implementation
-├── pyproject.toml         # Project configuration  
-├── README.md              # This file
-├── LICENSE               # MIT License
-└── .env.example          # Environment template
-```
-
-## Usage Examples
-
-### Basic Search
-```python
-# Search for information
-result = await client.call_tool("search", {
-    "params": {
-        "q": "MCP protocol documentation",
-        "engine": "google"
-    }
-})
-```
-
-### Weather Query
-```python
-# Get weather information
-weather = await client.call_tool("search", {
-    "params": {
-        "q": "weather in San Francisco with forecast",
-        "engine": "google"
-    }
-})
-```
-
-### Stock Information
-```python
-# Get stock data
-stock = await client.call_tool("search", {
-    "params": {
-        "q": "Tesla stock price and market cap",
-        "engine": "google"
-    }
-})
-```
-
-### Raw JSON Response
-```python
-# Get full API response
-raw_data = await client.call_tool("search", {
-    "params": {
-        "q": "artificial intelligence",
-        "engine": "google"
-    },
-    "raw": True
-})
+# Configure: URL mcp.serpapi.com/YOUR_KEY/mcp, Transport "Streamable HTTP transport"
 ```
 
 ## Troubleshooting
 
-### Common Issues
-
-**"Missing API key" Error:**
-- Ensure your API key is included in the URL path: `/{YOUR_API_KEY}/v1/mcp`
-- Or verify the Authorization header: `Bearer YOUR_API_KEY`
-- Verify your API key at [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
-
-**"Invalid SerpApi API key" Error:**
-- Check your API key is valid at [serpapi.com/manage-api-key](https://serpapi.com/manage-api-key)
-- Ensure the API key in the path or header is correctly formatted
-- Verify your SerpApi subscription is active
-
-**"Rate limit exceeded" Error:**
-- Wait for the retry period
-- Consider upgrading your SerpApi plan
-- Reduce request frequency
-
-**"Module not found" Error:**
-- Ensure dependencies are installed: `uv install` or `pip install mcp serpapi python-dotenv`
-- Check Python version compatibility (3.13+ required)
-
-**"No results found" Error:**
-- Try adjusting your search query
-- Use a different search engine
-- Check if the query is valid for the selected engine
+**"Missing API key"**: Include key in URL path `/{YOUR_KEY}/mcp` or header `Bearer YOUR_KEY`
+**"Invalid key"**: Verify at [serpapi.com/dashboard](https://serpapi.com/dashboard)  
+**"Rate limit exceeded"**: Wait or upgrade your SerpApi plan
+**"No results"**: Try different query or engine
 
 ## Contributing
 
@@ -392,4 +124,3 @@ raw_data = await client.call_tool("search", {
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
