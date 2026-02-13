@@ -3,6 +3,10 @@
   "name": "io.github.serpapi/serpapi-mcp",
   "version": "1.0.0",
   "description": "Official SerpApi MCP server for Google, Bing, and other search engines.",
+  "repository": {
+    "url": "https://github.com/serpapi/serpapi-mcp",
+    "source": "github"
+  },
   "remotes": [
     {
       "type": "sse",
