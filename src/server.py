@@ -201,7 +201,7 @@ async def search(
     location: str = Field(..., description='Geographic location filter'),
     engine: str = Field(default="google_light", description='Search engine to use (default: "google_light")'),
     num: str = Field(default=10, description='Number of results to return'), 
-    mode: str = Field("complete", description="Response Mode complete or compact") -> str:
+    mode: str = Field("complete", description="Response Mode complete or compact")) -> str:
     """Universal search tool supporting all SerpApi engines and result types.
 
     This tool consolidates weather, stock, and general search functionality into a single interface.
