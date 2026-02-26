@@ -198,10 +198,10 @@ class RequestMetricsMiddleware(BaseHTTPMiddleware):
 @mcp.tool()
 async def search(
     q: str = Field(..., description='Search query (required for most engines)'),
-    engine: str = Field(default="google_light", description='Search engine to use (default: "google_light")'),
     location: str = Field(..., description='Geographic location filter'),
-    num: str = Field(10, description='Number of results to return'), 
-    mode: str = "complete") -> str:
+    engine: str = Field(default="google_light", description='Search engine to use (default: "google_light")'),
+    num: str = Field(default=10, description='Number of results to return'), 
+    mode: str = Field("complete", description="Response Mode complete or compact") -> str:
     """Universal search tool supporting all SerpApi engines and result types.
 
     This tool consolidates weather, stock, and general search functionality into a single interface.
