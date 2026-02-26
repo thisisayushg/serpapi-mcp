@@ -16,6 +16,7 @@ import serpapi
 import logging
 from datetime import datetime
 from pathlib import Path
+from pydantic import BaseModel, Field
 import re
 
 load_dotenv()
@@ -194,9 +195,14 @@ class RequestMetricsMiddleware(BaseHTTPMiddleware):
 
         return response
 
+class RequestModel(BaseModel):
+    q: str = Field(..., description='Search query (required for most engines)')
+    engine: str = Field(..., description='Search engine to use (default: "google_light")')
+    location: str = Field(..., description='Geographic location filter')
+    num: str = Field(..., description='Number of results to return')
 
 @mcp.tool()
-async def search(params: dict[str, Any] = {}, mode: str = "complete") -> str:
+async def search(params: RequestModel, mode: str = "complete") -> str:
     """Universal search tool supporting all SerpApi engines and result types.
 
     This tool consolidates weather, stock, and general search functionality into a single interface.
