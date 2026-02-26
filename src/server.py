@@ -198,7 +198,7 @@ class RequestMetricsMiddleware(BaseHTTPMiddleware):
 @mcp.tool()
 async def search(
     q: str = Field(..., description='Search query (required for most engines)'),
-    location: str = Field(..., description='Geographic location filter'),
+    location: str = Field(default='', description='Geographic location filter'),
     engine: str = Field(default="google_light", description='Search engine to use (default: "google_light")'),
     num: str = Field(default=10, description='Number of results to return'), 
     mode: str = Field("complete", description="Response Mode complete or compact")) -> str:
