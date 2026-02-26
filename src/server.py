@@ -195,27 +195,24 @@ class RequestMetricsMiddleware(BaseHTTPMiddleware):
 
         return response
 
-class RequestModel(BaseModel):
-    q: str = Field(..., description='Search query (required for most engines)')
-    engine: str = Field(..., description='Search engine to use (default: "google_light")')
-    location: str = Field(..., description='Geographic location filter')
-    num: str = Field(..., description='Number of results to return')
-
 @mcp.tool()
-async def search(params: RequestModel, mode: str = "complete") -> str:
+async def search(
+    q: str = Field(..., description='Search query (required for most engines)'),
+    engine: str = Field(default="google_light", description='Search engine to use (default: "google_light")'),
+    location: str = Field(..., description='Geographic location filter'),
+    num: str = Field(10, description='Number of results to return'), 
+    mode: str = "complete") -> str:
     """Universal search tool supporting all SerpApi engines and result types.
 
     This tool consolidates weather, stock, and general search functionality into a single interface.
     It processes multiple result types and returns structured JSON output.
 
     Args:
-        params: Dictionary of engine-specific parameters. Common parameters include:
-            - q: Search query (required for most engines)
-            - engine: Search engine to use (default: "google_light")
-            - location: Geographic location filter
-            - num: Number of results to return
-
-        mode: Response mode (default: "complete")
+        - q: Search query (required for most engines)
+        - engine: Search engine to use (default: "google_light")
+        - location: Geographic location filter
+        - num: Number of results to return
+        - mode: Response mode (default: "complete")
             - "complete": Returns full JSON response with all fields
             - "compact": Returns JSON response with metadata fields removed
 
@@ -260,8 +257,10 @@ async def search(params: RequestModel, mode: str = "complete") -> str:
 
     search_params = {
         "api_key": api_key,
-        "engine": "google_light",  # Fastest engine by default
-        **params,  # Include any additional parameters
+        "engine": engine,  # Fastest engine by default
+        "q":q,
+        "location": location,
+        "num": num,
     }
 
     try:
